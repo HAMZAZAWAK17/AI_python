@@ -3,7 +3,7 @@
 #
 import cv2
 
-capture = cv2.VideoCapture('ressources/video1.mp4')
+capture = cv2.VideoCapture('Ressources/demo1.mp4')
 
 succes, img = capture.read()
 while succes:
