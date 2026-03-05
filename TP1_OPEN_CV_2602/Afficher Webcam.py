@@ -16,6 +16,8 @@ succes, img = capture.read()
 while succes:
     cv2.imshow("Webcam", img)
 
+    cv2.imshow("Webcam2", cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+
     # Taper sur la touche ESC pour stopper la boucle
     if cv2.waitKey(10) & 0xFF == 27:
         break
