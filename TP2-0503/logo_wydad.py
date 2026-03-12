@@ -2,57 +2,63 @@ import cv2
 import numpy as np
 import math
 
-# Création d'une image blanche de 600x600 pixels
-largeur, hauteur = 600, 600
+# Création d'une image blanche de 800x800 pixels
+largeur, hauteur = 800, 800
 image = np.zeros((hauteur, largeur, 3), dtype=np.uint8)
 image[:] = 255 # Remplir avec du blanc
 
-# Couleurs pour le logo WAC (en format BGR)
-rouge = (0, 0, 210) 
+# Couleurs pour le logo (en format BGR)
+rouge = (30, 30, 215) 
 blanc = (255, 255, 255)
-vert = (50, 180, 50)
+or_jaune = (20, 180, 240)
 
 # Centre de l'image
-cx, cy = 300, 300
+cx, cy = 400, 400
 
-# Cercle rouge extérieur
-cv2.circle(image, (cx, cy), 280, rouge, -1, cv2.LINE_AA)
-# Cercle blanc intérieur
-cv2.circle(image, (cx, cy), 200, blanc, -1, cv2.LINE_AA)
-
-# Police d'écriture
-font_principale = cv2.FONT_HERSHEY_DUPLEX
-font_secondaire = cv2.FONT_HERSHEY_SIMPLEX
-
-# Ajouter les textes sur le bord rouge
-cv2.putText(image, "W Y D A D", (200, 60), font_secondaire, 1.2, blanc, 3, cv2.LINE_AA)
-cv2.putText(image, "ATHLETIC CLUB", (160, 565), font_secondaire, 1.2, blanc, 3, cv2.LINE_AA)
-
-# Ajouter "W A C" géants (entrecroisés ou côte à côte)
-cv2.putText(image, "W", (130, 330), font_principale, 5, rouge, 12, cv2.LINE_AA)
-cv2.putText(image, "A", (240, 250), font_principale, 5, rouge, 12, cv2.LINE_AA)
-cv2.putText(image, "C", (370, 330), font_principale, 5, rouge, 12, cv2.LINE_AA)
-
-# Ajouter la date 1937
-cv2.putText(image, "1937", (240, 420), font_secondaire, 1.5, rouge, 3, cv2.LINE_AA)
-
-# Fonction pour dessiner la fameuse étoile verte à 5 branches
-def dessiner_etoile(img, centre, rayon, couleur, epaisseur):
+# Fonction pour dessiner une étoile remplie
+def dessiner_etoile_remplie(img, center, radius, color):
     points = []
-    # L'angle entre deux pointes d'un pentagramme est de 144 degrés
-    for i in range(5):
-        angle = math.radians(i * 144 - 90) # -90 pour pointer vers le haut
-        x = int(centre[0] + rayon * math.cos(angle))
-        y = int(centre[1] + rayon * math.sin(angle))
+    inner_radius = radius * 0.382
+    for i in range(10):
+        r = radius if i % 2 == 0 else inner_radius
+        angle = math.radians(i * 36 - 90)
+        x = int(center[0] + r * math.cos(angle))
+        y = int(center[1] + r * math.sin(angle))
         points.append([x, y])
-        
     pts = np.array(points, np.int32)
-    pts = pts.reshape((-1, 1, 2))
-    # Dessiner l'étoile
-    cv2.polylines(img, [pts], isClosed=True, color=couleur, thickness=epaisseur, lineType=cv2.LINE_AA)
+    cv2.fillPoly(img, [pts], color, lineType=cv2.LINE_AA)
 
-# Dessiner l'étoile verte au milieu
-dessiner_etoile(image, (300, 280), 30, vert, 3)
+# 1. Étoiles jaunes en haut
+dessiner_etoile_remplie(image, (340, 100), 30, or_jaune)
+dessiner_etoile_remplie(image, (460, 100), 30, or_jaune)
+
+# 2. Cercle rouge extérieur très fin
+cv2.circle(image, (cx, cy), 280, rouge, 2, cv2.LINE_AA)
+
+# 3. Le grand cercle rouge central (légèrement décalé vers le haut et plus petit)
+# Dans l'original, c'est un cercle avec de la calligraphie, on dessine le fond
+cv2.circle(image, (cx, cy - 10), 220, rouge, -1, cv2.LINE_AA)
+
+# Une approximation de la calligraphie (Lignes courbes blanches)
+cv2.ellipse(image, (cx, cy - 10), (180, 180), 0, 180, 360, blanc, 10, cv2.LINE_AA)
+cv2.ellipse(image, (cx, cy - 10), (120, 120), 0, 0, 180, blanc, 10, cv2.LINE_AA)
+cv2.circle(image, (cx, cy - 10), 60, blanc, 10, cv2.LINE_AA)
+
+# 4. Dessin du bord rouge épais en bas pour contenir le texte "W.A.C"
+cv2.ellipse(image, (cx, cy + 20), (250, 250), 0, 30, 150, rouge, 40, cv2.LINE_AA)
+
+# 5. Dessin du texte W.A.C
+font = cv2.FONT_HERSHEY_DUPLEX
+# Obtenir des lettres inclinées est complexe en OpenCV pur, on positionne manuellement
+cv2.putText(image, "W", (210, 580), font, 2.5, rouge, 6, cv2.LINE_AA)
+cv2.putText(image, ".", (290, 600), font, 2, rouge, 6, cv2.LINE_AA)
+cv2.putText(image, "A", (370, 630), font, 2.5, rouge, 6, cv2.LINE_AA)
+cv2.putText(image, ".", (440, 630), font, 2, rouge, 6, cv2.LINE_AA)
+cv2.putText(image, "C", (530, 580), font, 2.5, rouge, 6, cv2.LINE_AA)
+
+# 6. Étoiles jaunes toutes petites en bas
+dessiner_etoile_remplie(image, (370, 750), 12, or_jaune)
+dessiner_etoile_remplie(image, (430, 750), 12, or_jaune)
 
 # Affichage du résultat
 cv2.imshow("Logo WAC", image)
