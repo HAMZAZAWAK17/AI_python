@@ -1,46 +1,35 @@
 import cv2
-import face_recognition # On garde face_recognition uniquement pour la signature (encoding)
-from PIL import Image, ImageDraw
 
-# 1. Apprendre les visages
-hakim_image = face_recognition.load_image_file("hakim.jpg")
-hakim_signature = face_recognition.face_encodings(hakim_image)[0]
+# 1. Charger l'image de l'équipe
+image_chemin = "equipeMA.jpg"
+image = cv2.imread(image_chemin)
 
-mrabet_image = face_recognition.load_image_file("Mrabet.jpg")
-mrabet_signature = face_recognition.face_encodings(mrabet_image)[0]
+if image is None:
+    print(f"Erreur : Impossible de charger l'image {image_chemin}")
+else:
+    # 2. Convertir en noir et blanc pour le détecteur
+    gris = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-signatures_connues = [hakim_signature, mrabet_signature]
-noms_connus = ["Hakim Ziyach", "Soufiane Mrabet"]
+    # 3. Charger le détecteur de visages d'OpenCV
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# 2. Charger l'image de l'équipe
-image_equipe = cv2.imread("equipeMA.jpg")
-image_rgb = cv2.cvtColor(image_equipe, cv2.COLOR_BGR2RGB)
+    # 4. Détecter les visages
+    visages = face_cascade.detectMultiScale(gris, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-# Utiliser OpenCV pour la détection (très stable)
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-visages = face_cascade.detectMultiScale(cv2.cvtColor(image_equipe, cv2.COLOR_BGR2GRAY), 1.1, 4)
+    print(f"Nombre de visages détectés : {len(visages)}")
 
-# 3. Dessiner avec Pillow
-pil_img = Image.fromarray(image_rgb)
-draw = ImageDraw.Draw(pil_img)
+    # 5. Dessiner des rectangles autour des visages détectés
+    for (x, y, w, h) in visages:
+        cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        cv2.putText(image, "Visage", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-for (x, y, w, h) in visages:
-    # Convertir format OpenCV (x,y,w,h) vers format face_recognition (top, right, bottom, left)
-    location = [(y, x+w, y+h, x)]
+    # 6. Afficher le résultat
+    cv2.imshow('Detection de Visages - TP AI', image)
     
-    # Extraire la signature du visage détecté
-    signature_inconnue = face_recognition.face_encodings(image_rgb, location)[0]
-    
-    # Comparer
-    matches = face_recognition.compare_faces(signatures_connues, signature_inconnue)
-    nom = "Inconnu"
-    if True in matches:
-        nom = noms_connus[matches.index(True)]
-    
-    # Dessiner le rectangle et le nom
-    draw.rectangle(((x, y), (x+w, y+h)), outline=(0, 0, 255), width=3)
-    draw.text((x, y-20), nom, fill=(255, 0, 0))
+    # 7. Sauvegarder l'image résultat
+    cv2.imwrite("resultat_detection.jpg", image)
+    print("Image sauvegardée sous 'resultat_detection.jpg'")
 
-# 4. Afficher et Sauvegarder
-pil_img.show()
-pil_img.save("resultat_tp.jpg")
+    # Attendre qu'une touche soit pressée pour fermer la fenêtre
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
