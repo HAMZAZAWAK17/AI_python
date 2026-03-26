@@ -1,68 +1,46 @@
-import face_recognition
+import cv2
+import face_recognition # On garde face_recognition uniquement pour la signature (encoding)
 from PIL import Image, ImageDraw
-#
-# Ce programme est un exemple de reconnaissance de visage
-# avec encadrement est reconnaissance sur l'image du nom du personnage 
 
-# charger l'image de la personne est apprendre au système a la reconnaitre  .
+# 1. Apprendre les visages
 hakim_image = face_recognition.load_image_file("hakim.jpg")
-hakim_visage_signature = face_recognition.face_encodings(hakim_image)[0]
+hakim_signature = face_recognition.face_encodings(hakim_image)[0]
 
-
-# charger la deuxiéme image de personne est apprendre au système a la reconnaitre  .
 mrabet_image = face_recognition.load_image_file("Mrabet.jpg")
-mrabet_visage_signature = face_recognition.face_encodings(mrabet_image)[0]
+mrabet_signature = face_recognition.face_encodings(mrabet_image)[0]
 
-# creer un tableau des signature des visages associés au nom de personnes
-reconnu_visage_signatures = [
-    hakim_visage_signature,
-    mrabet_visage_signature
-]
-reconnu_visage_noms = [
-    "Hakim Ziyach",
-    "Soufiane Mrabet"
-]
+signatures_connues = [hakim_signature, mrabet_signature]
+noms_connus = ["Hakim Ziyach", "Soufiane Mrabet"]
 
-# Charger l'image avec les visages non reconnus
-non_reconnu_image = face_recognition.load_image_file("equipeMA.jpg")
+# 2. Charger l'image de l'équipe
+image_equipe = cv2.imread("equipeMA.jpg")
+image_rgb = cv2.cvtColor(image_equipe, cv2.COLOR_BGR2RGB)
 
-# trouver tout les visages et leurs signature dans une image source 
-visage_locations = face_recognition.face_locations(non_reconnu_image)
-visage_signatures = face_recognition.face_encodings(non_reconnu_image, visage_locations)
+# Utiliser OpenCV pour la détection (très stable)
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+visages = face_cascade.detectMultiScale(cv2.cvtColor(image_equipe, cv2.COLOR_BGR2GRAY), 1.1, 4)
 
-# convertire l'image en PIL-format pour qu'on puisse dessiner avec la librairie pillow  
-# regarder http://pillow.readthedocs.io/ pour plus d'informations sur PIL/Pillow
-pil_image = Image.fromarray(non_reconnu_image)
-# creer une image ou nous allons faire des dessin sous format d'instance de Pillow ImageDraw 
-img_dessin=ImageDraw.Draw(pil_image)
-# boucler sur les visage trouver dans l'image à reconnaite
-for (top, right, bottom, left), visage_signature in zip(visage_locations, visage_signatures):
-    # voir si le visage extrait correspond a un(des) visage(s) reconnu(s)
-    matches = face_recognition.compare_faces(reconnu_visage_signatures, visage_signature)
+# 3. Dessiner avec Pillow
+pil_img = Image.fromarray(image_rgb)
+draw = ImageDraw.Draw(pil_img)
 
-    nom_personne = "non_reconnu"
-
-    # Si une correspondance est retrouvé dans les reconne_visage_signatures, seulement prendre le premier!
+for (x, y, w, h) in visages:
+    # Convertir format OpenCV (x,y,w,h) vers format face_recognition (top, right, bottom, left)
+    location = [(y, x+w, y+h, x)]
+    
+    # Extraire la signature du visage détecté
+    signature_inconnue = face_recognition.face_encodings(image_rgb, location)[0]
+    
+    # Comparer
+    matches = face_recognition.compare_faces(signatures_connues, signature_inconnue)
+    nom = "Inconnu"
     if True in matches:
-        first_match_index = matches.index(True)
-        nom_personne = reconnu_visage_noms[first_match_index]
+        nom = noms_connus[matches.index(True)]
+    
+    # Dessiner le rectangle et le nom
+    draw.rectangle(((x, y), (x+w, y+h)), outline=(0, 0, 255), width=3)
+    draw.text((x, y-20), nom, fill=(255, 0, 0))
 
-    # dessiner un rectangle atour du visage utilisant les modules de pillow
-    img_dessin.rectangle(((left, top), (right, bottom)), outline=(0, 0, 255))
-
-    # dessiner un label avec le text du nom de visage reconnus
-    # Utilisation de textbbox pour la compatibilité avec les versions récentes de Pillow
-    bbox = img_dessin.textbbox((0, 0), nom_personne)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    img_dessin.rectangle(((left, bottom - text_height - 10), (right, bottom)), fill=(0, 255, 0), outline=(0, 0, 255))
-    img_dessin.text((left + 6, bottom - text_height - 5), nom_personne, fill=(255, 0, 0, 255))
-
-
-# supprimer la library de dessin de la  memoire
-del img_dessin
-
-# afficher l'image resultant
-pil_image.show()
-
-pil_image.save("image_avec_detection.jpg")
+# 4. Afficher et Sauvegarder
+pil_img.show()
+pil_img.save("resultat_tp.jpg")
